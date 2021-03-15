@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Live cam</title>
+	<style>
+	body {
+      font: 20px sans-serif;
+      line-height: 1.8;
+      color: #f5f6f7;
+	}
+	.bg-1 { 
+      background-color: #1abc9c; /* Green */
+      color: #ffffff;
+	}
+	.bg-3 { 
+      background-color: #ffffff; /* White */
+      color: #555555;
+	}
+	</style>
+	<script>
+    window.onload = function() {
+    var image = document.getElementById("CAM");
+    function updateImage() {
+        image.src = image.src.split("?")[0] + "?" + new Date().getTime();
+        //console.log("update" + image.src)
+    }
+    setInterval(updateImage, 15000);
+    }
+	</script>
+  </head>
+  <body>
+	<div class="bg-1 text-center">
+    CAM1 <br />
+	</div>
+	<div class="bg-3 text-center">
+	<img id="CAM" src="/cam/CAM-1.jpg"/>
+	</div>
+  </body>
+</html>
