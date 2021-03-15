@@ -6,11 +6,16 @@ import (
 	"log"
 	"net/http"
 	"os"
-	//"text/template"
+	"text/template"
+	"time"
 )
 
+type tplParams struct {
+	LastDate string
+}
+
 // Compile templates on start of the application
-//var templates = template.Must(template.ParseFiles("static/upload.html"))
+var mainTmpl = template.Must(template.ParseFiles("static/index.html"))
 
 const (
 	AUTH_KEY = "97fd1e27-69cb-4a54-ad43-df4c78a851ff"
@@ -73,13 +78,29 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	log.Println("Successfully Uploaded File to ", tempFile.Name())
 }
 
-// func display(w http.ResponseWriter, page string, data interface{}) {
-// 	templates.ExecuteTemplate(w, page+".html", data)
-// }
+func mainHandler(w http.ResponseWriter, r *http.Request) {
+	params := tplParams{
+		LastDate: "--:--",
+	}
+
+	if fileInfo, err := os.Lstat("./cam/CAM-1.jpg"); err == nil {
+		loc, err := time.LoadLocation("Europe/Moscow")
+		if err == nil {
+			params.LastDate = fileInfo.ModTime().In(loc).Format("2006-01-02 15:04:05")
+		}
+	} else {
+		log.Println(err)
+	}
+
+	mainTmpl.Execute(w, params)
+}
 
 func main() {
-	//http.HandleFunc("/", handler)
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	//loc, _ := time.LoadLocation("Europe/Moscow") // TODO
+
+	http.HandleFunc("/", mainHandler)
+
+	//http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	http.Handle("/data/", http.StripPrefix(
 		"/data/",
