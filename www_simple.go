@@ -1,25 +1,52 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"text/template"
+
+	//"text/template"
 	"time"
 )
+
+type CAMInfo struct {
+	Id      int    `json:"id"`
+	Path    string `json:"path"`
+	Updated string `json:"updated"`
+}
+
+// type MainHandler struct {
+// 	loc *time.Location
+// }
 
 type tplParams struct {
 	LastDate string
 }
 
+var loc *time.Location
+
 // Compile templates on start of the application
-var mainTmpl = template.Must(template.ParseFiles("static/index.html"))
+//var mainTmpl = template.Must(template.ParseFiles("static/index.html"))
 
 const (
 	AUTH_KEY = "97fd1e27-69cb-4a54-ad43-df4c78a851ff"
+	DEF_TZ   = "Europe/Moscow"
 )
+
+func getFileModdate(path string) string {
+	res := "--:--"
+	if fileInfo, err := os.Lstat("./cam/CAM-1.jpg"); err == nil {
+		if loc != nil {
+			res = fileInfo.ModTime().In(loc).Format("2006-01-02 15:04:05")
+		}
+	} else {
+		log.Println(err)
+	}
+	return res
+}
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -78,29 +105,50 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	log.Println("Successfully Uploaded File to ", tempFile.Name())
 }
 
-func mainHandler(w http.ResponseWriter, r *http.Request) {
-	params := tplParams{
-		LastDate: "--:--",
-	}
+// func mainHandler(w http.ResponseWriter, r *http.Request) {
+// 	params := tplParams{
+// 		LastDate: getFileModdate("/cam/CAM-1.jpg"),
+// 	}
 
-	if fileInfo, err := os.Lstat("./cam/CAM-1.jpg"); err == nil {
-		loc, err := time.LoadLocation("Europe/Moscow")
-		if err == nil {
-			params.LastDate = fileInfo.ModTime().In(loc).Format("2006-01-02 15:04:05")
-		}
-	} else {
-		log.Println(err)
-	}
+// 	mainTmpl.Execute(w, params)
+// }
 
-	mainTmpl.Execute(w, params)
+func apiHandler(w http.ResponseWriter, r *http.Request) {
+	cam := CAMInfo{
+		Id:      1,
+		Path:    "/cam/CAM-1.jpg",
+		Updated: getFileModdate("/cam/CAM-1.jpg"),
+	}
+	json.NewEncoder(w).Encode(cam)
 }
 
+// func (h *MainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// 	params := tplParams{
+// 		LastDate: "--:--",
+// 	}
+
+// 	if fileInfo, err := os.Lstat("./cam/CAM-1.jpg"); err == nil {
+// 		if h.loc != nil {
+// 			params.LastDate = fileInfo.ModTime().In(h.loc).Format("2006-01-02 15:04:05")
+// 		}
+// 	} else {
+// 		log.Println(err)
+// 	}
+
+// 	mainTmpl.Execute(w, params)
+// }
+
 func main() {
-	//loc, _ := time.LoadLocation("Europe/Moscow") // TODO
 
-	http.HandleFunc("/", mainHandler)
+	loc, _ = time.LoadLocation(DEF_TZ)
+	//mainHandler := &MainHandler{loc: loc}
+	//http.Handle("/", mainHandler)
 
-	//http.Handle("/", http.FileServer(http.Dir("./static")))
+	//http.HandleFunc("/", mainHandler)
+	http.HandleFunc("/upload", uploadHandler)
+	http.HandleFunc("/api", apiHandler)
+
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	http.Handle("/data/", http.StripPrefix(
 		"/data/",
@@ -111,7 +159,7 @@ func main() {
 		"/cam/",
 		http.FileServer(http.Dir("./cam")),
 	))
-	http.HandleFunc("/upload", uploadHandler)
+
 	fmt.Printf("Starting server at port 51062\n")
 	log.Fatal(http.ListenAndServe(":51062", nil))
 }
