@@ -42,8 +42,11 @@
         xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           var image = document.getElementById("CAM");
-          var resp = JSON.parse(this.responseText);   
-          document.getElementById("status").innerHTML = "CAM-"+resp.id+"   "+resp.updated;
+          var resp = JSON.parse(this.responseText)[0];   
+          //document.getElementById("status").innerHTML = "CAM-"+resp.id+"   "+resp.updated;
+          var ts = new Date(resp.timestamp*1000).toLocaleString()
+          document.getElementById("status").innerHTML = "CAM-"+resp.id+"   "+ts;
+          // todo - check TS
           image.src = resp.path.split("?")[0] + "?" + new Date().getTime();
           }
         };

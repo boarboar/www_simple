@@ -13,9 +13,10 @@ import (
 )
 
 type CAMInfo struct {
-	Id      int    `json:"id"`
-	Path    string `json:"path"`
-	Updated string `json:"updated"`
+	Id        int    `json:"id"`
+	Path      string `json:"path"`
+	Updated   string `json:"updated"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 // type MainHandler struct {
@@ -36,16 +37,18 @@ const (
 	DEF_TZ   = "Europe/Moscow"
 )
 
-func getFileModdate(path string) string {
-	res := "--:--"
+func getFileModdate(path string) (int64, string) {
+	res_s := "--:--"
+	res_ts := int64(0)
 	if fileInfo, err := os.Lstat("./cam/CAM-1.jpg"); err == nil {
+		res_ts = fileInfo.ModTime().Unix()
 		if loc != nil {
-			res = fileInfo.ModTime().In(loc).Format("2006-01-02 15:04:05")
+			res_s = fileInfo.ModTime().In(loc).Format("2006-01-02 15:04:05")
 		}
 	} else {
 		log.Println(err)
 	}
-	return res
+	return res_ts, res_s
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
@@ -114,10 +117,14 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 // }
 
 func apiHandler(w http.ResponseWriter, r *http.Request) {
-	cam := CAMInfo{
-		Id:      1,
-		Path:    "/cam/CAM-1.jpg",
-		Updated: getFileModdate("/cam/CAM-1.jpg"),
+	res_ts, res_s := getFileModdate("/cam/CAM-1.jpg")
+	cam := []CAMInfo{
+		{
+			Id:        1,
+			Path:      "/cam/CAM-1.jpg",
+			Updated:   res_s,
+			Timestamp: res_ts,
+		},
 	}
 	json.NewEncoder(w).Encode(cam)
 }
