@@ -24,15 +24,10 @@
 	}
 	</style>
 	<script>
+    let cam_ts = new Map()
+  
     window.onload = function() {
     var image = document.getElementById("CAM");
-    /*
-    function updateImage() {
-        image.src = image.src.split("?")[0] + "?" + new Date().getTime();
-        //console.log("update" + image.src)
-        loadStatus();
-    }
-    */
     loadCAM();
     setInterval(loadCAM, 15000);
     }
@@ -47,12 +42,16 @@
               var id = resp.id
               var cam_div = document.getElementById("cam-"+id)
               var image = document.getElementById("img-"+id); 
-              if (cam_div.style.display == 'none')
+              var unvis = cam_div.style.display == 'none'
+              if (unvis)
                 cam_div.style.display = 'block';        
-              var ts = new Date(resp.timestamp*1000).toLocaleString()
-              document.getElementById("status-"+id).innerHTML = "CAM-"+id+"   "+ts;
-              // todo - check TS
-              image.src = resp.path.split("?")[0] + "?" + new Date().getTime();
+              // check TS  
+              if (cam_ts.get(id) != resp.timestamp || unvis) {
+                var ts = new Date(resp.timestamp*1000).toLocaleString()
+                document.getElementById("status-"+id).innerHTML = "CAM-"+id+"   "+ts;
+                image.src = resp.path.split("?")[0] + "?" + new Date().getTime();
+                cam_ts.set(id, resp.timestamp)
+              }
             }
           }
         };
