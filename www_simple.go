@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -86,9 +87,6 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	log.Printf("File Size: %+v\n", handler.Size)
 	log.Printf("MIME Header: %+v\n", handler.Header)
 
-	// Create a temporary file within our temp-images directory that follows
-	// a particular naming pattern
-	//tempFile, err := ioutil.TempFile("uploads", "upload-*.png")
 	tempFile, err := os.Create("./cam/" + handler.Filename)
 	if err != nil {
 		log.Println(err)
@@ -152,21 +150,36 @@ func main() {
 	//http.Handle("/", mainHandler)
 
 	//http.HandleFunc("/", mainHandler)
-	http.HandleFunc("/upload", uploadHandler)
-	http.HandleFunc("/api", apiHandler)
 
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	mux := http.NewServeMux()
 
-	http.Handle("/data/", http.StripPrefix(
+	server := http.Server{
+		Addr:    ":51063",
+		Handler: mux,
+		TLSConfig: &tls.Config{
+			NextProtos: []string{"h2", "http/1.1"},
+		},
+	}
+
+	mux.HandleFunc("/upload", uploadHandler)
+	mux.HandleFunc("/api", apiHandler)
+
+	mux.Handle("/", http.FileServer(http.Dir("./static")))
+
+	mux.Handle("/data/", http.StripPrefix(
 		"/data/",
 		http.FileServer(http.Dir("./static")),
 	))
 
-	http.Handle("/cam/", http.StripPrefix(
+	mux.Handle("/cam/", http.StripPrefix(
 		"/cam/",
 		http.FileServer(http.Dir("./cam")),
 	))
 
-	fmt.Printf("Starting server at port 51062\n")
-	log.Fatal(http.ListenAndServe(":51062", nil))
+	fmt.Printf("Starting HTTP server at port 51062\n")
+	go http.ListenAndServe(":51062", mux)
+	fmt.Printf("Starting HTTPS server at port 51063\n")
+	if err := server.ListenAndServeTLS("localhost.crt", "localhost.key"); err != nil {
+		fmt.Println(err)
+	}
 }
